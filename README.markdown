@@ -1,3 +1,7 @@
+## (NOTE: This fork is a work in progress and does not have complete functionality.)
+
+
+
 # IDMPhotoBrowser ![](http://cocoapod-badges.herokuapp.com/v/IDMPhotoBrowser/badge.png) ![](http://cocoapod-badges.herokuapp.com/p/IDMPhotoBrowser/badge.png)
 
 IDMPhotoBrowser is a new implementation based on [MWPhotoBrowser](https://github.com/mwaterfall/MWPhotoBrowser).

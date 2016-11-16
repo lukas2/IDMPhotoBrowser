@@ -37,9 +37,10 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     UIButton *_doneButton;
 
 	// Toolbar
-	UIToolbar *_toolbar;
-	UIBarButtonItem *_previousButton, *_nextButton, *_actionButton;
-    UIBarButtonItem *_counterButton;
+	UIView *_uiBar;
+    
+//	UIBarButtonItem *_previousButton, *_nextButton, *_actionButton;
+//  UIBarButtonItem *_counterButton;
     UILabel *_counterLabel;
 
     // Actions
@@ -98,7 +99,7 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 - (CGRect)frameForPageAtIndex:(NSUInteger)index;
 - (CGSize)contentSizeForPagingScrollView;
 - (CGPoint)contentOffsetForPageAtIndex:(NSUInteger)index;
-- (CGRect)frameForToolbarAtOrientation:(UIInterfaceOrientation)orientation;
+- (CGRect)frameForUiBarAtOrientation:(UIInterfaceOrientation)orientation;
 - (CGRect)frameForDoneButtonAtOrientation:(UIInterfaceOrientation)orientation;
 - (CGRect)frameForCaptionView:(IDMCaptionView *)captionView atIndex:(NSUInteger)index;
 
@@ -139,6 +140,12 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 @synthesize disableVerticalSwipe = _disableVerticalSwipe;
 @synthesize actionsSheet = _actionsSheet, activityViewController = _activityViewController;
 @synthesize trackTintColor = _trackTintColor, progressTintColor = _progressTintColor;
+@synthesize closeOnTap = _closeOnTap;
+@synthesize counterLabelFont = _counterLabelFont;
+@synthesize doneButtonFont = _doneButtonFont;
+@synthesize doneButtonText = _doneButtonText;
+@synthesize doneButtonBackgroundColor = _doneButtonBackgroundColor;
+@synthesize doneButtonTextColor = _doneButtonTextColor;
 @synthesize delegate = _delegate;
 
 #pragma mark - NSObject
@@ -180,7 +187,14 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
         _animationDuration = 0.28;
         _senderViewForAnimation = nil;
         _scaleImage = nil;
-
+        
+        _closeOnTap = NO;
+        _counterLabelFont = [UIFont fontWithName:@"Helvetica" size:17];
+        _doneButtonFont = [UIFont boldSystemFontOfSize:11.0f];
+        _doneButtonText = IDMPhotoBrowserLocalizedStrings(@"Done");
+        _doneButtonBackgroundColor = [UIColor colorWithWhite:0.1 alpha:0.5];
+        _doneButtonTextColor = [UIColor colorWithWhite:0.9 alpha:0.9];
+        
         _isdraggingPhoto = NO;
 
         if ([self respondsToSelector:@selector(automaticallyAdjustsScrollViewInsets)])
@@ -216,14 +230,16 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 
 - (id)initWithPhotos:(NSArray *)photosArray {
     if ((self = [self init])) {
-		_photos = [[NSMutableArray alloc] initWithArray:photosArray];
+        NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
+		_photos = [[NSMutableArray alloc] initWithArray:photosTripled];
 	}
 	return self;
 }
 
 - (id)initWithPhotos:(NSArray *)photosArray animatedFromView:(UIView*)view {
     if ((self = [self init])) {
-		_photos = [[NSMutableArray alloc] initWithArray:photosArray];
+        NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
+        _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
         _senderViewForAnimation = view;
 	}
 	return self;
@@ -232,7 +248,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 - (id)initWithPhotoURLs:(NSArray *)photoURLsArray {
     if ((self = [self init])) {
         NSArray *photosArray = [IDMPhoto photosWithURLs:photoURLsArray];
-		_photos = [[NSMutableArray alloc] initWithArray:photosArray];
+        NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
+        _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
 	}
 	return self;
 }
@@ -240,7 +257,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 - (id)initWithPhotoURLs:(NSArray *)photoURLsArray animatedFromView:(UIView*)view {
     if ((self = [self init])) {
         NSArray *photosArray = [IDMPhoto photosWithURLs:photoURLsArray];
-		_photos = [[NSMutableArray alloc] initWithArray:photosArray];
+        NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
+        _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
         _senderViewForAnimation = view;
 	}
 	return self;
@@ -459,7 +477,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     else
     {
         [UIView animateWithDuration:_animationDuration animations:^{
-            resizableImageView.layer.frame = senderViewOriginalFrame;
+            resizableImageView.alpha = 0;
+//            resizableImageView.layer.frame = senderViewOriginalFrame;
         } completion:^(BOOL finished) {
             completion();
         }];
@@ -574,6 +593,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 	_pagingScrollView.backgroundColor = [UIColor clearColor];
     _pagingScrollView.contentSize = [self contentSizeForPagingScrollView];
 	[self.view addSubview:_pagingScrollView];
+    
+    _currentPageIndex = [self realNumberOfPhotos];
 
     // Transition animation
     [self performPresentAnimation];
@@ -581,28 +602,28 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
 
     // Toolbar
-    _toolbar = [[UIToolbar alloc] initWithFrame:[self frameForToolbarAtOrientation:currentOrientation]];
-    _toolbar.backgroundColor = [UIColor clearColor];
-    _toolbar.clipsToBounds = YES;
-    _toolbar.translucent = YES;
-    [_toolbar setBackgroundImage:[UIImage new]
-              forToolbarPosition:UIToolbarPositionAny
-                      barMetrics:UIBarMetricsDefault];
+    _uiBar = [[UIView alloc]  initWithFrame:[self frameForUiBarAtOrientation:currentOrientation]];
+    //_toolbar = [[UIToolbar alloc] initWithFrame:[self frameForToolbarAtOrientation:currentOrientation]];
+    
+    _uiBar.backgroundColor = [UIColor colorWithRed:1.0f green:1.0f blue:1.0f alpha:0.8];
+    _uiBar.clipsToBounds = YES;
+    
+//    _uiBar.translucent = YES;
+//    [_toolbar setBackgroundImage:[UIImage new]
+//              forToolbarPosition:UIToolbarPositionAny
+//                      barMetrics:UIBarMetricsDefault];
 
     // Close Button
-    _doneButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    _doneButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [_doneButton setFrame:[self frameForDoneButtonAtOrientation:currentOrientation]];
     [_doneButton setAlpha:1.0f];
     [_doneButton addTarget:self action:@selector(doneButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
 
     if(!_doneButtonImage) {
-        [_doneButton setTitleColor:[UIColor colorWithWhite:0.9 alpha:0.9] forState:UIControlStateNormal|UIControlStateHighlighted];
-        [_doneButton setTitle:IDMPhotoBrowserLocalizedStrings(@"Done") forState:UIControlStateNormal];
-        [_doneButton.titleLabel setFont:[UIFont boldSystemFontOfSize:11.0f]];
-        [_doneButton setBackgroundColor:[UIColor colorWithWhite:0.1 alpha:0.5]];
-        _doneButton.layer.cornerRadius = 3.0f;
-        _doneButton.layer.borderColor = [UIColor colorWithWhite:0.9 alpha:0.9].CGColor;
-        _doneButton.layer.borderWidth = 1.0f;
+        [_doneButton setTitle:_doneButtonText forState:UIControlStateNormal];
+        [_doneButton.titleLabel setFont:_doneButtonFont];
+        [_doneButton setBackgroundColor:_doneButtonBackgroundColor];
+        //[_doneButton setTitleColor:_doneButtonTextColor forState:UIControlStateNormal|UIControlStateHighlighted];
     }
     else {
         [_doneButton setImage:_doneButtonImage forState:UIControlStateNormal];
@@ -622,19 +643,19 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     [UIImage imageNamed:@"IDMPhotoBrowser.bundle/images/IDMPhotoBrowser_arrowRightSelected.png"] : _rightArrowSelectedImage;
 
     // Arrows
-    _previousButton = [[UIBarButtonItem alloc] initWithCustomView:[self customToolbarButtonImage:leftButtonImage
-                                                                                   imageSelected:leftButtonSelectedImage
-                                                                                          action:@selector(gotoPreviousPage)]];
-
-    _nextButton = [[UIBarButtonItem alloc] initWithCustomView:[self customToolbarButtonImage:rightButtonImage
-                                                                               imageSelected:rightButtonSelectedImage
-                                                                                      action:@selector(gotoNextPage)]];
+//    _previousButton = [[UIBarButtonItem alloc] initWithCustomView:[self customToolbarButtonImage:leftButtonImage
+//                                                                                   imageSelected:leftButtonSelectedImage
+//                                                                                          action:@selector(gotoPreviousPage)]];
+//
+//    _nextButton = [[UIBarButtonItem alloc] initWithCustomView:[self customToolbarButtonImage:rightButtonImage
+//                                                                               imageSelected:rightButtonSelectedImage
+//                                                                                      action:@selector(gotoNextPage)]];
 
     // Counter Label
     _counterLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 95, 40)];
     _counterLabel.textAlignment = NSTextAlignmentCenter;
     _counterLabel.backgroundColor = [UIColor clearColor];
-    _counterLabel.font = [UIFont fontWithName:@"Helvetica" size:17];
+    _counterLabel.font = _counterLabelFont;
 
     if(_useWhiteBackgroundColor == NO) {
         _counterLabel.textColor = [UIColor whiteColor];
@@ -644,14 +665,17 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     else {
         _counterLabel.textColor = [UIColor blackColor];
     }
+    
+    _counterLabel.frame = [self frameForCounterLabelAtOrientation:currentOrientation];
+    [_uiBar addSubview:_counterLabel];
 
     // Counter Button
-    _counterButton = [[UIBarButtonItem alloc] initWithCustomView:_counterLabel];
+//    _counterButton = [[UIBarButtonItem alloc] initWithCustomView:_counterLabel];
 
-    // Action Button
-    _actionButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction
-                                                                  target:self
-                                                                  action:@selector(actionButtonPressed:)];
+//    // Action Button
+//    _actionButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction
+//                                                                  target:self
+//                                                                  action:@selector(actionButtonPressed:)];
 
     // Gesture
     _panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panGestureRecognized:)];
@@ -690,10 +714,11 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     _pagingScrollView = nil;
     _visiblePages = nil;
     _recycledPages = nil;
-    _toolbar = nil;
+    //_toolbar = nil;
+    _uiBar = nil;
     _doneButton = nil;
-    _previousButton = nil;
-    _nextButton = nil;
+    //_previousButton = nil;
+    //_nextButton = nil;
 
     [super viewDidUnload];
 }
@@ -735,11 +760,10 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
 
     // Toolbar
-    _toolbar.frame = [self frameForToolbarAtOrientation:currentOrientation];
+    _uiBar.frame = [self frameForUiBarAtOrientation:currentOrientation];
 
     // Done button
     _doneButton.frame = [self frameForDoneButtonAtOrientation:currentOrientation];
-
 
     // Remember index
 	NSUInteger indexPriorToLayout = _currentPageIndex;
@@ -784,14 +808,17 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 
     // Toolbar
     if (_displayToolbar) {
-        [self.view addSubview:_toolbar];
+        [self.view addSubview:_uiBar];
     } else {
-        [_toolbar removeFromSuperview];
+        [_uiBar removeFromSuperview];
     }
 
     // Close button
-    if(_displayDoneButton && !self.navigationController.navigationBar)
+    if(_displayDoneButton && !self.navigationController.navigationBar){
+        [_doneButton setTitleColor:_doneButtonTextColor forState:UIControlStateNormal];;
         [self.view addSubview:_doneButton];
+    }
+    
 
     // Toolbar items & navigation
     UIBarButtonItem *fixedLeftSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace
@@ -805,23 +832,23 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
         [items addObject:fixedLeftSpace];
     [items addObject:flexSpace];
 
-    if (numberOfPhotos > 1 && _displayArrowButton)
-        [items addObject:_previousButton];
+//    if (numberOfPhotos > 1 && _displayArrowButton)
+//        [items addObject:_previousButton];
 
     if(_displayCounterLabel) {
-        [items addObject:flexSpace];
-        [items addObject:_counterButton];
+//        [items addObject:flexSpace];
+//        [items addObject:_counterButton];
     }
 
-    [items addObject:flexSpace];
-    if (numberOfPhotos > 1 && _displayArrowButton)
-        [items addObject:_nextButton];
-    [items addObject:flexSpace];
+//    [items addObject:flexSpace];
+//    if (numberOfPhotos > 1 && _displayArrowButton)
+//        [items addObject:_nextButton];
+//    [items addObject:flexSpace];
 
-    if(_displayActionButton)
-        [items addObject:_actionButton];
+//    if(_displayActionButton)
+//        [items addObject:_actionButton];
 
-    [_toolbar setItems:items];
+//    [_toolbar setItems:items];
 	[self updateToolbar];
 
     // Content offset
@@ -848,6 +875,10 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 
 - (NSUInteger)numberOfPhotos {
     return _photos.count;
+}
+
+- (NSUInteger)realNumberOfPhotos {
+    return [self numberOfPhotos] / 3;
 }
 
 - (id<IDMPhoto>)photoAtIndex:(NSUInteger)index {
@@ -1035,6 +1066,9 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
         // photo loaded so load ajacent now
         [self loadAdjacentPhotosIfNecessary:currentPhoto];
     }
+    
+    
+    
     if ([_delegate respondsToSelector:@selector(photoBrowser:didShowPhotoAtIndex:)]) {
         [_delegate photoBrowser:self didShowPhotoAtIndex:index];
     }
@@ -1078,13 +1112,13 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     return UIInterfaceOrientationIsLandscape(orientation);
 }
 
-- (CGRect)frameForToolbarAtOrientation:(UIInterfaceOrientation)orientation {
-    CGFloat height = 44;
+- (CGRect)frameForUiBarAtOrientation:(UIInterfaceOrientation)orientation {
+    CGFloat height = 60;
 
     if ([self isLandscape:orientation])
-        height = 32;
+        height = 48;
 
-    return CGRectMake(0, self.view.bounds.size.height - height, self.view.bounds.size.width, height);
+    return CGRectMake(0, 0, self.view.bounds.size.width, height);
 }
 
 - (CGRect)frameForDoneButtonAtOrientation:(UIInterfaceOrientation)orientation {
@@ -1093,14 +1127,33 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 
     // if ([self isLandscape:orientation]) screenWidth = screenBound.size.height;
 
-    return CGRectMake(screenWidth - 75, 30, 55, 26);
+    CGFloat originY = 22;
+    
+    if ([self isLandscape:orientation])
+        originY = 11;
+        
+    return CGRectMake(screenWidth - 75, originY, 55, 26);
+}
+
+- (CGRect)frameForCounterLabelAtOrientation:(UIInterfaceOrientation)orientation {
+    CGRect screenBound = self.view.bounds;
+    CGFloat screenWidth = screenBound.size.width;
+    
+    // if ([self isLandscape:orientation]) screenWidth = screenBound.size.height;
+    
+    CGFloat originY = 25;
+    
+    if ([self isLandscape:orientation])
+        originY = 1;
+    
+    return CGRectMake(19, originY, 95, 26);
 }
 
 - (CGRect)frameForCaptionView:(IDMCaptionView *)captionView atIndex:(NSUInteger)index {
     CGRect pageFrame = [self frameForPageAtIndex:index];
 
     CGSize captionSize = [captionView sizeThatFits:CGSizeMake(pageFrame.size.width, 0)];
-    CGRect captionFrame = CGRectMake(pageFrame.origin.x, pageFrame.size.height - captionSize.height - (_toolbar.superview?_toolbar.frame.size.height:0), pageFrame.size.width, captionSize.height);
+    CGRect captionFrame = CGRectMake(pageFrame.origin.x, pageFrame.size.height - captionSize.height - (_uiBar.superview?_uiBar.frame.size.height:0), pageFrame.size.width, captionSize.height);
 
     return captionFrame;
 }
@@ -1136,23 +1189,40 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 }
 
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    [self centerContentOffsetToMiddleSegment];
+    
 	// Update toolbar when page changes
 	if(! _arrowButtonsChangePhotosAnimated) [self updateToolbar];
 }
 
+- (void)centerContentOffsetToMiddleSegment {
+    // Reset _currentPageIndex and scroll offset to center segment for infinite scrolling
+    _currentPageIndex = (_currentPageIndex % [self realNumberOfPhotos]) + 5;
+    CGRect pageFrame = [self frameForPageAtIndex:_currentPageIndex];
+    
+    [_pagingScrollView setContentOffset:CGPointMake(pageFrame.origin.x - PADDING, 0) animated:NO];
+    
+}
 #pragma mark - Toolbar
+
+- (void)updateUiBar { // TODO: delete
+    
+}
 
 - (void)updateToolbar {
     // Counter
 	if ([self numberOfPhotos] > 1) {
-		_counterLabel.text = [NSString stringWithFormat:@"%lu %@ %lu", (unsigned long)(_currentPageIndex+1), IDMPhotoBrowserLocalizedStrings(@"of"), (unsigned long)[self numberOfPhotos]];
+        //_counterLabel.text = [NSString stringWithFormat:@"%lu %@ %lu", (unsigned long)(_currentPageIndex+1), IDMPhotoBrowserLocalizedStrings(@"of"), (unsigned long)[self numberOfPhotos]];
+        unsigned long currentIndex = _currentPageIndex;
+		_counterLabel.text = [NSString stringWithFormat:@"%lu/%lu", (unsigned long)(currentIndex % [self realNumberOfPhotos]) + 1, (unsigned long)([self numberOfPhotos] / 3 /* because photos tripled in init for inf. scroll */)];
+        _counterLabel.sizeToFit;
 	} else {
 		_counterLabel.text = nil;
 	}
 
 	// Buttons
-	_previousButton.enabled = (_currentPageIndex > 0);
-	_nextButton.enabled = (_currentPageIndex < [self numberOfPhotos]-1);
+//	_previousButton.enabled = (_currentPageIndex > 0);
+//	_nextButton.enabled = (_currentPageIndex < [self numberOfPhotos]-1);
 }
 
 - (void)jumpToPageAtIndex:(NSUInteger)index {
@@ -1195,7 +1265,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     [UIView animateWithDuration:(animated ? 0.1 : 0) animations:^(void) {
         CGFloat alpha = hidden ? 0 : 1;
         [self.navigationController.navigationBar setAlpha:alpha];
-        [_toolbar setAlpha:alpha];
+        [_uiBar setAlpha:alpha];
+        
         [_doneButton setAlpha:alpha];
         for (UIView *v in captionViews) v.alpha = alpha;
     } completion:^(BOOL finished) {}];
@@ -1228,10 +1299,19 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 	}
 }
 
-- (BOOL)areControlsHidden { return (_toolbar.alpha == 0); }
+- (BOOL)areControlsHidden { return (_uiBar.alpha == 0); }
 - (void)hideControls      { if(_autoHide && _autoHideInterface) [self setControlsHidden:YES animated:YES permanent:NO]; }
 - (void)toggleControls    { [self setControlsHidden:![self areControlsHidden] animated:YES permanent:NO]; }
 
+- (void)onTap {
+    if (_closeOnTap) {
+        IDMZoomingScrollView *scrollView = [self pageDisplayedAtIndex:_currentPageIndex];
+        [self performCloseAnimationWithScrollView:scrollView];
+    } else {
+        [self toggleControls];
+    }
+    
+}
 
 #pragma mark - Properties
 

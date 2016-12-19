@@ -256,6 +256,7 @@
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
     [self setNeedsLayout];
     [self layoutIfNeeded];
+    [_photoBrowser scrollViewDidZoom:scrollView];
 }
 
 #pragma mark - Tap Detection

@@ -1200,6 +1200,13 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 
 #pragma mark - UIScrollView Delegate
 
+- (void)scrollViewDidZoom:(UIScrollView *)scrollView {
+    if (scrollView.zoomScale < 0.1) {
+        [self prepareForClosePhotoBrowser];
+        [self dismissPhotoBrowserAnimated:YES];
+    }
+}
+
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView  {
     // Checks
     if (!_viewIsActive || _performingLayout || _rotating) return;

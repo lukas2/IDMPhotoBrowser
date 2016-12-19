@@ -68,16 +68,16 @@
 @property (nonatomic) float animationDuration;
 
 // Init
-- (id)initWithPhotos:(NSArray *)photosArray;
+- (id)initWithPhotos:(NSArray *)photosArray endlessScroll:(BOOL)endlessScroll;
 
 // Init (animated)
-- (id)initWithPhotos:(NSArray *)photosArray animatedFromView:(UIView*)view;
+- (id)initWithPhotos:(NSArray *)photosArray animatedFromView:(UIView*)view endlessScroll:(BOOL)endlessScroll;
 
 // Init with NSURL objects
-- (id)initWithPhotoURLs:(NSArray *)photoURLsArray;
+- (id)initWithPhotoURLs:(NSArray *)photoURLsArray endlessScroll:(BOOL)endlessScroll;
 
 // Init with NSURL objects (animated)
-- (id)initWithPhotoURLs:(NSArray *)photoURLsArray animatedFromView:(UIView*)view;
+- (id)initWithPhotoURLs:(NSArray *)photoURLsArray animatedFromView:(UIView*)view endlessScroll:(BOOL)endlessScroll;
 
 // Reloads the photo browser and refetches data
 - (void)reloadData;

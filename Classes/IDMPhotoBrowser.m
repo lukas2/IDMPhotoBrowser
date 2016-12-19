@@ -74,6 +74,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 	// iOS 7
     UIViewController *_applicationTopViewController;
     int _previousModalPresentationStyle;
+    
+    BOOL _endlessScrollingEnabled;
 }
 
 // Private Properties
@@ -154,6 +156,7 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     if ((self = [super init])) {
         // Defaults
         self.hidesBottomBarWhenPushed = YES;
+        
         _currentPageIndex = 0;
 		_performingLayout = NO; // Reset on view did appear
 		_rotating = NO;
@@ -162,6 +165,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
         _recycledPages = [NSMutableSet new];
         _photos = [NSMutableArray new];
 
+        _endlessScrollingEnabled = NO;
+        
         _initalPageIndex = 0;
         _autoHide = YES;
         _autoHideInterface = YES;
@@ -228,37 +233,66 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     return self;
 }
 
-- (id)initWithPhotos:(NSArray *)photosArray {
+- (id)initWithPhotos:(NSArray *)photosArray endlessScroll:(BOOL)endlessScroll {
     if ((self = [self init])) {
-        NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
-		_photos = [[NSMutableArray alloc] initWithArray:photosTripled];
+        
+        _endlessScrollingEnabled = endlessScroll;
+        
+        if (endlessScroll) {
+            NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
+            _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
+        } else {
+            _photos = [[NSMutableArray alloc] initWithArray:photosArray];
+        }
 	}
 	return self;
 }
 
-- (id)initWithPhotos:(NSArray *)photosArray animatedFromView:(UIView*)view {
+- (id)initWithPhotos:(NSArray *)photosArray animatedFromView:(UIView*)view  endlessScroll:(BOOL)endlessScroll {
     if ((self = [self init])) {
-        NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
-        _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
+        
+        _endlessScrollingEnabled = endlessScroll;
+        
+        if (_endlessScrollingEnabled) {
+            NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
+            _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
+        } else {
+            _photos = [[NSMutableArray alloc] initWithArray:photosArray];
+        }
+        
         _senderViewForAnimation = view;
 	}
 	return self;
 }
 
-- (id)initWithPhotoURLs:(NSArray *)photoURLsArray {
+- (id)initWithPhotoURLs:(NSArray *)photoURLsArray endlessScroll:(BOOL)endlessScroll {
     if ((self = [self init])) {
+        
+        _endlessScrollingEnabled = endlessScroll;
+        
         NSArray *photosArray = [IDMPhoto photosWithURLs:photoURLsArray];
-        NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
-        _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
+        if (_endlessScrollingEnabled) {
+            NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
+            _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
+        } else {
+            _photos = [[NSMutableArray alloc] initWithArray:photosArray];
+        }
 	}
 	return self;
 }
 
-- (id)initWithPhotoURLs:(NSArray *)photoURLsArray animatedFromView:(UIView*)view {
+- (id)initWithPhotoURLs:(NSArray *)photoURLsArray animatedFromView:(UIView*)view endlessScroll:(BOOL)endlessScroll {
     if ((self = [self init])) {
+        
+        _endlessScrollingEnabled = endlessScroll;
+        
         NSArray *photosArray = [IDMPhoto photosWithURLs:photoURLsArray];
-        NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
-        _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
+        if (_endlessScrollingEnabled) {
+            NSArray *photosTripled = [[photosArray arrayByAddingObjectsFromArray:photosArray] arrayByAddingObjectsFromArray:photosArray];
+            _photos = [[NSMutableArray alloc] initWithArray:photosTripled];
+        } else {
+            _photos = [[NSMutableArray alloc] initWithArray:photosArray];
+        }
         _senderViewForAnimation = view;
 	}
 	return self;
@@ -585,7 +619,9 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 	// Setup paging scrolling view
 	CGRect pagingScrollViewFrame = [self frameForPagingScrollView];
 	_pagingScrollView = [[UIScrollView alloc] initWithFrame:pagingScrollViewFrame];
+    
     //_pagingScrollView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    
 	_pagingScrollView.pagingEnabled = YES;
 	_pagingScrollView.delegate = self;
 	_pagingScrollView.showsHorizontalScrollIndicator = NO;
@@ -594,7 +630,7 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     _pagingScrollView.contentSize = [self contentSizeForPagingScrollView];
 	[self.view addSubview:_pagingScrollView];
     
-    _currentPageIndex = [self realNumberOfPhotos];
+    //_currentPageIndex = [self realNumberOfPhotos];
 
     // Transition animation
     [self performPresentAnimation];
@@ -878,7 +914,11 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 }
 
 - (NSUInteger)realNumberOfPhotos {
-    return [self numberOfPhotos] / 3;
+    if (_endlessScrollingEnabled) {
+        return [self numberOfPhotos] / 3;
+    } else {
+        return [self numberOfPhotos];
+    }
 }
 
 - (id<IDMPhoto>)photoAtIndex:(NSUInteger)index {
@@ -1144,7 +1184,7 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     CGFloat originY = 25;
     
     if ([self isLandscape:orientation])
-        originY = 1;
+        originY = 11;
     
     return CGRectMake(19, originY, 95, 26);
 }
@@ -1189,7 +1229,9 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 }
 
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
-    [self centerContentOffsetToMiddleSegment];
+    if (_endlessScrollingEnabled) {
+        [self centerContentOffsetToMiddleSegment];
+    }
     
 	// Update toolbar when page changes
 	if(! _arrowButtonsChangePhotosAnimated) [self updateToolbar];
@@ -1197,24 +1239,24 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 
 - (void)centerContentOffsetToMiddleSegment {
     // Reset _currentPageIndex and scroll offset to center segment for infinite scrolling
-    _currentPageIndex = (_currentPageIndex % [self realNumberOfPhotos]) + 5;
+    _currentPageIndex = (_currentPageIndex % [self realNumberOfPhotos]) + [self realNumberOfPhotos];
+    
     CGRect pageFrame = [self frameForPageAtIndex:_currentPageIndex];
     
     [_pagingScrollView setContentOffset:CGPointMake(pageFrame.origin.x - PADDING, 0) animated:NO];
-    
 }
-#pragma mark - Toolbar
 
-- (void)updateUiBar { // TODO: delete
-    
-}
+
+#pragma mark - Toolbar
 
 - (void)updateToolbar {
     // Counter
 	if ([self numberOfPhotos] > 1) {
-        //_counterLabel.text = [NSString stringWithFormat:@"%lu %@ %lu", (unsigned long)(_currentPageIndex+1), IDMPhotoBrowserLocalizedStrings(@"of"), (unsigned long)[self numberOfPhotos]];
-        unsigned long currentIndex = _currentPageIndex;
-		_counterLabel.text = [NSString stringWithFormat:@"%lu/%lu", (unsigned long)(currentIndex % [self realNumberOfPhotos]) + 1, (unsigned long)([self numberOfPhotos] / 3 /* because photos tripled in init for inf. scroll */)];
+        if (_endlessScrollingEnabled) {
+            _counterLabel.text = [NSString stringWithFormat:@"%lu/%lu", (unsigned long)(_currentPageIndex % [self realNumberOfPhotos]) + 1, (unsigned long)([self numberOfPhotos] / 3 /* because photos tripled in init for inf. scroll */)];
+        } else {
+            _counterLabel.text = [NSString stringWithFormat:@"%lu/%lu", (unsigned long)(_currentPageIndex + 1), (unsigned long)[self numberOfPhotos]];
+        }
         _counterLabel.sizeToFit;
 	} else {
 		_counterLabel.text = nil;
@@ -1436,6 +1478,20 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 			completion();
 		}];
 	}
+}
+
+#pragma mark - rotation
+
+- (void) willTransitionToTraitCollection:(UITraitCollection *)newCollection withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super willTransitionToTraitCollection:newCollection withTransitionCoordinator:coordinator];
+    
+    [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+        UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
+        
+        _counterLabel.frame = [self frameForCounterLabelAtOrientation:currentOrientation];
+        _doneButton.frame = [self frameForDoneButtonAtOrientation:currentOrientation];
+        
+    } completion:nil];
 }
 
 @end

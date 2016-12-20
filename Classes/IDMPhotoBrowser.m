@@ -381,8 +381,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
             [scrollView setCenter:CGPointMake(finalX, finalY)];
             self.view.backgroundColor = [UIColor colorWithWhite:0 alpha:0];
             [UIView commitAnimations];
-
-            [self performSelector:@selector(doneButtonPressed:) withObject:self afterDelay:animationDuration];
+            
+            [self performSelector:@selector(dismissWithGesture) withObject:self afterDelay:animationDuration];
         }
         else // Continue Showing View
         {
@@ -492,7 +492,7 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
         [resizableImageView removeFromSuperview];
 
         [self prepareForClosePhotoBrowser];
-        [self dismissPhotoBrowserAnimated:NO];
+        [self dismissPhotoBrowserAnimated:NO dismissType:Gesture];
     };
 
     [UIView animateWithDuration:_animationDuration animations:^{
@@ -562,15 +562,15 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     [NSObject cancelPreviousPerformRequestsWithTarget:self]; // Cancel any pending toggles from taps
 }
 
-- (void)dismissPhotoBrowserAnimated:(BOOL)animated {
+- (void)dismissPhotoBrowserAnimated:(BOOL)animated dismissType:(DismissType)dismissType {
     self.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
 
     if ([_delegate respondsToSelector:@selector(photoBrowser:willDismissAtPageIndex:)])
         [_delegate photoBrowser:self willDismissAtPageIndex:_currentPageIndex];
 
     [self dismissViewControllerAnimated:animated completion:^{
-        if ([_delegate respondsToSelector:@selector(photoBrowser:didDismissAtPageIndex:)])
-            [_delegate photoBrowser:self didDismissAtPageIndex:_currentPageIndex];
+        if ([_delegate respondsToSelector:@selector(photoBrowser:didDismissAtPageIndex:withDismissType:)])
+            [_delegate photoBrowser:self didDismissAtPageIndex:_currentPageIndex withDismissType:dismissType];
 
 		if (SYSTEM_VERSION_LESS_THAN(@"8.0"))
 		{
@@ -1201,9 +1201,10 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 #pragma mark - UIScrollView Delegate
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
-    if (scrollView.zoomScale < 0.1) {
+    NSLog(@"scrollViewDidZoom: %f", scrollView.zoomScale);
+    if (scrollView.zoomScale < 0.3) {
         [self prepareForClosePhotoBrowser];
-        [self dismissPhotoBrowserAnimated:YES];
+        [self dismissPhotoBrowserAnimated:YES dismissType:Pinchout];
     }
 }
 
@@ -1348,6 +1349,13 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 	}
 }
 
+- (void)dismissWithGesture
+{
+    _senderViewForAnimation.hidden = NO;
+    [self prepareForClosePhotoBrowser];
+    [self dismissPhotoBrowserAnimated:YES dismissType:Gesture];
+}
+
 - (BOOL)areControlsHidden { return (_uiBar.alpha == 0); }
 - (void)hideControls      { if(_autoHide && _autoHideInterface) [self setControlsHidden:YES animated:YES permanent:NO]; }
 - (void)toggleControls    { [self setControlsHidden:![self areControlsHidden] animated:YES permanent:NO]; }
@@ -1381,11 +1389,10 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     if (_senderViewForAnimation && _currentPageIndex == _initalPageIndex) {
         IDMZoomingScrollView *scrollView = [self pageDisplayedAtIndex:_currentPageIndex];
         [self performCloseAnimationWithScrollView:scrollView];
-    }
-    else {
+    } else {
         _senderViewForAnimation.hidden = NO;
         [self prepareForClosePhotoBrowser];
-        [self dismissPhotoBrowserAnimated:YES];
+        [self dismissPhotoBrowserAnimated:YES dismissType:DoneButton];
     }
 }
 

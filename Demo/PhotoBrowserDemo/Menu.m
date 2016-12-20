@@ -108,7 +108,7 @@
     }
     
     // Create and setup browser
-    IDMPhotoBrowser *browser = [[IDMPhotoBrowser alloc] initWithPhotos:photos animatedFromView:sender]; // using initWithPhotos:animatedFromView: method to use the zoom-in animation
+    IDMPhotoBrowser *browser = [[IDMPhotoBrowser alloc] initWithPhotos:photos animatedFromView:sender endlessScroll:YES]; // using initWithPhotos:animatedFromView: method to use the zoom-in animation
     browser.delegate = self;
     browser.displayActionButton = NO;
     browser.displayArrowButton = YES;
@@ -222,7 +222,7 @@
     }
     
     // Create and setup browser
-    IDMPhotoBrowser *browser = [[IDMPhotoBrowser alloc] initWithPhotos:photos];
+    IDMPhotoBrowser *browser = [[IDMPhotoBrowser alloc] initWithPhotos:photos endlessScroll:YES];
     browser.delegate = self;
     
     if(indexPath.section == 1) // Multiple photos
@@ -282,5 +282,23 @@
     NSString *title = [NSString stringWithFormat:@"Option %zu", buttonIndex+1];
     [UIAlertView showAlertViewWithTitle:title];
 }
+
+- (void)photoBrowser:(IDMPhotoBrowser *)photoBrowser didDismissAtPageIndex:(NSUInteger)index withDismissType:(DismissType)dismissType
+{
+    switch (dismissType) {
+        case Gesture:
+            NSLog(@"DISMISSED with gesture");
+            break;
+        case Pinchout:
+            NSLog(@"DISMISSED with pinchout");
+            break;
+        case DoneButton:
+            NSLog(@"DISMISSED with done button");
+            break;
+        default:
+            break;
+    }
+}
+
 
 @end

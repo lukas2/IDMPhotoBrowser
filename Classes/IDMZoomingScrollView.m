@@ -256,7 +256,9 @@
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
     [self setNeedsLayout];
     [self layoutIfNeeded];
-    [_photoBrowser scrollViewDidZoom:scrollView];
+    if (self.zoomScale <= self.minimumZoomScale - (self.minimumZoomScale * 0.4f)) {
+        [_photoBrowser performSelector:@selector(scrollViewDidPinchOut)];
+    }
 }
 
 - (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale {

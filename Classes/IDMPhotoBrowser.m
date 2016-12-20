@@ -1211,10 +1211,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 
 #pragma mark - UIScrollView Delegate
 
-- (void)scrollViewDidZoom:(UIScrollView *)scrollView {
-    if (scrollView.zoomScale < 0.3) {
+- (void)scrollViewDidPinchOut {
         [self dismissPhotoBrowserAnimated:YES dismissType:Pinchout];
-    }
 }
 
 - (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale {

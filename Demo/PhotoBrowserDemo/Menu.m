@@ -300,5 +300,9 @@
     }
 }
 
+- (void)photoBrowser:(IDMPhotoBrowser *)photoBrowser didZoomWithGesture:(ZoomGesture)gesture {
+    // TODO
+}
+
 
 @end

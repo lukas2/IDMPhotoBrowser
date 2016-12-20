@@ -76,6 +76,8 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     int _previousModalPresentationStyle;
     
     BOOL _endlessScrollingEnabled;
+    
+    BOOL _didDoubleTap;
 }
 
 // Private Properties
@@ -1198,13 +1200,31 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     return captionFrame;
 }
 
+- (void)zoomedWithDoubleTap {
+    _didDoubleTap = YES;
+    
+    SEL selector = @selector(photoBrowser:didZoomWithGesture:);
+    if ([_delegate respondsToSelector:selector]) {
+        [_delegate photoBrowser:self didZoomWithGesture:DoubleTap];
+    }
+}
+
 #pragma mark - UIScrollView Delegate
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
-    NSLog(@"scrollViewDidZoom: %f", scrollView.zoomScale);
     if (scrollView.zoomScale < 0.3) {
-        [self prepareForClosePhotoBrowser];
         [self dismissPhotoBrowserAnimated:YES dismissType:Pinchout];
+    }
+}
+
+- (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale {
+    SEL selector = @selector(photoBrowser:didZoomWithGesture:);
+    if ([_delegate respondsToSelector:selector]) {
+        if (!_didDoubleTap) {
+            [_delegate photoBrowser:self didZoomWithGesture:Pinch];
+        } else {
+            _didDoubleTap = NO;
+        }
     }
 }
 

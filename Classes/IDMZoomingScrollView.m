@@ -259,6 +259,10 @@
     [_photoBrowser scrollViewDidZoom:scrollView];
 }
 
+- (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(UIView *)view atScale:(CGFloat)scale {
+    [_photoBrowser scrollViewDidEndZooming:self withView:view atScale:scale];
+}
+
 #pragma mark - Tap Detection
 
 - (void)handleSingleTap:(CGPoint)touchPoint {
@@ -280,11 +284,12 @@
 		
 		// Zoom in
 		[self zoomToRect:CGRectMake(touchPoint.x, touchPoint.y, 1, 1) animated:YES];
-		
 	}
 	
 	// Delay controls
 	[_photoBrowser hideControlsAfterDelay];
+    
+    [_photoBrowser performSelector:@selector(zoomedWithDoubleTap) withObject:nil afterDelay:0.2];
 }
 
 // Image View

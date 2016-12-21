@@ -14,9 +14,10 @@
 #import "IDMCaptionView.h"
 
 typedef enum {
-    Gesture,
+    PanGesture,
     DoneButton,
-    Pinchout
+    Pinchout,
+    Tap
 } DismissType;
 
 typedef enum {

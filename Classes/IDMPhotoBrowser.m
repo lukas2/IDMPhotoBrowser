@@ -384,7 +384,7 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
             self.view.backgroundColor = [UIColor colorWithWhite:0 alpha:0];
             [UIView commitAnimations];
             
-            [self performSelector:@selector(dismissWithGesture) withObject:self afterDelay:animationDuration];
+            [self performSelector:@selector(dismissWithPanGesture) withObject:self afterDelay:animationDuration];
         }
         else // Continue Showing View
         {
@@ -494,7 +494,7 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
         [resizableImageView removeFromSuperview];
 
         [self prepareForClosePhotoBrowser];
-        [self dismissPhotoBrowserAnimated:NO dismissType:Gesture];
+        [self dismissPhotoBrowserAnimated:NO dismissType:Tap];
     };
 
     [UIView animateWithDuration:_animationDuration animations:^{
@@ -1226,6 +1226,7 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     }
 }
 
+
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView  {
     // Checks
     if (!_viewIsActive || _performingLayout || _rotating) return;
@@ -1367,11 +1368,11 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 	}
 }
 
-- (void)dismissWithGesture
+- (void)dismissWithPanGesture
 {
     _senderViewForAnimation.hidden = NO;
     [self prepareForClosePhotoBrowser];
-    [self dismissPhotoBrowserAnimated:YES dismissType:Gesture];
+    [self dismissPhotoBrowserAnimated:YES dismissType:PanGesture];
 }
 
 - (BOOL)areControlsHidden { return (_uiBar.alpha == 0); }

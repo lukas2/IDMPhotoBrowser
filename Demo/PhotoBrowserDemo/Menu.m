@@ -286,8 +286,8 @@
 - (void)photoBrowser:(IDMPhotoBrowser *)photoBrowser didDismissAtPageIndex:(NSUInteger)index withDismissType:(DismissType)dismissType
 {
     switch (dismissType) {
-        case Gesture:
-            NSLog(@"DISMISSED with gesture");
+        case PanGesture:
+            NSLog(@"DISMISSED with pan gesture");
             break;
         case Pinchout:
             NSLog(@"DISMISSED with pinchout");
@@ -295,13 +295,20 @@
         case DoneButton:
             NSLog(@"DISMISSED with done button");
             break;
+        case Tap:
+            NSLog(@"DISMISSED with tap");
+            break;
         default:
             break;
     }
 }
 
 - (void)photoBrowser:(IDMPhotoBrowser *)photoBrowser didZoomWithGesture:(ZoomGesture)gesture {
-    // TODO
+    if (gesture == Pinch) {
+        NSLog(@"DID ZOOM with pinch");
+    } else {
+        NSLog(@"DID ZOOM with double tap");
+    }
 }
 
 

@@ -36,7 +36,7 @@
     
     CGPoint center = CGPointMake(self.frame.size.width  / 2, self.frame.size.height / 2);
     CGRect frame = CGRectMake(0, 0, 100, 100);
-    UIImage *image = [UIImage imageNamed:@"pinch_gesture.png"];
+    UIImage *image = [UIImage imageNamed:@"IDMPhotoBrowser.bundle/images/pinch_gesture.png"];
     
     _imageView = [[UIImageView alloc] initWithFrame:frame];
     _imageView.image = image;

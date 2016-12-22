@@ -9,6 +9,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import "IDMPhotoBrowser.h"
 #import "IDMZoomingScrollView.h"
+#import "IDMTutorialOverlayView.h"
 
 #import "pop/POP.h"
 
@@ -78,6 +79,9 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
     BOOL _endlessScrollingEnabled;
     
     BOOL _didDoubleTap;
+    
+    IDMTutorialOverlayView *_tutorialOverlayView;
+    BOOL _didShowTutorial;
 }
 
 // Private Properties
@@ -739,6 +743,14 @@ NSLocalizedStringFromTableInBundle((key), nil, [NSBundle bundleWithPath:[[NSBund
 
     // Update UI
 	[self hideControlsAfterDelay];
+    
+    if (!_didShowTutorial) {
+        CGRect frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height);
+        _tutorialOverlayView = [[IDMTutorialOverlayView alloc] initWithFrame:frame];
+        _tutorialOverlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [self.view addSubview:_tutorialOverlayView];
+        _didShowTutorial = YES;
+    }
 }
 
 - (void)viewDidAppear:(BOOL)animated {
